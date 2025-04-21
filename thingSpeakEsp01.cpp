@@ -1,40 +1,41 @@
-#include "esp01.h"
+#include "thingSpeakEsp01.h"
 #include <Arduino.h>
 
-// These will be defined in the main .ino
-extern String mySSID;
-extern String myPWD;
-extern String myAPI;
-extern String myHOST;
-extern String myPORT;
+// Global variables declared in main .ino
+extern String esp01SSID;
+extern String esp01PWD;
+extern String esp01WriteAPI;
+extern String esp01HOST;
+extern String esp01PORT;
 
+// ✅ Define espSerial only once
 SoftwareSerial espSerial(esprxPin, esptxPin);
+
+// rest of your functions...
+
 
 void initEsp01() {
   espSerial.begin(espBaud);
   delay(250);
-  espData("AT+RST", 1000, DEBUG);                                         //Reset the ESP8266 module
-  espData("AT+CWMODE=1", 1000, DEBUG);                                    //Set the ESP mode as station mode
-  espData("AT+CWJAP=\"" + mySSID + "\",\"" + myPWD + "\"", 1000, DEBUG);  //Connect to WiFi network
+  espData("AT+RST", 1000, DEBUG);
+  espData("AT+CWMODE=1", 1000, DEBUG);
+  espData("AT+CWJAP=\"" + esp01SSID + "\",\"" + esp01PWD + "\"", 3000, DEBUG);
 }
 
 void sendThingSpeak(int fieldNumber, String data) {
-  String sendData = "GET /update?api_key=" + myAPI + "&field" + String(fieldNumber) + "=" + data;
-  espData("AT+CIPMUX=1", 1000, DEBUG);  //Allow multiple connections
-  espData("AT+CIPSTART=0,\"TCP\",\"" + myHOST + "\"," + myPORT, 1000, DEBUG);
+  String sendData = "GET /update?api_key=" + esp01WriteAPI + "&field" + String(fieldNumber) + "=" + data;
+  espData("AT+CIPMUX=1", 1000, DEBUG);
+  espData("AT+CIPSTART=0,\"TCP\",\"" + esp01HOST + "\"," + esp01PORT, 1000, DEBUG);
   espData("AT+CIPSEND=0," + String(sendData.length() + 4), 1000, DEBUG);
   espSerial.find(">");
   espSerial.println(sendData);
-  Serial.print("Value to be sent: ");
-  Serial.println(data);
-
+  Serial.println("Value sent: " + data);
   espData("AT+CIPCLOSE=0", 1000, DEBUG);
 }
 
 String espData(String command, const int timeout, bool debug) {
   Serial.print("AT Command ==> ");
-  Serial.print(command);
-  Serial.println("     ");
+  Serial.println(command);
 
   String response = "";
   espSerial.println(command);
